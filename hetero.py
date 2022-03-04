@@ -1,6 +1,5 @@
 import math
 import random
-# import numpy as np
 
 def SS_Matrix(G):
     # G = the number of groups
@@ -16,87 +15,51 @@ def SS_Matrix(G):
                 B[i][j] = j
     return B
 
-
-def homo_q(x_i, G, N):
-    vx_i = []
-    T = []  # discrete value from quantization range
-    r1, r2 = 0, 100  # quantization range
-    q = random.randint(1, 100)  # quantization level
-    delK = (r2 - r1) / (q - 1)  # quantization interval
-    for l in range(0, q):
-        T.append(r1 + l * q)
-    for i in x_i:
-        for l in range(0, q-1):
-            if T[l] <= i < T[l + 1]:
-                prob = (i - T[l]) / (T[l+1] - T[l])
-                if prob < 0.5:
-                    vx_i.append(T[l])
-                else:
-                    vx_i.append(T[l+1])
-
-def hetero_q(x_i, G, N):
-    vx_i = []
-    T = []
-    r1, r2 = 0, 100
-    B = SS_Matrix(G)
-    q = generateQuantizers_heteroQ(G)
-    delK = (r2 - r1)/ (q - 1)
-    for l in range(0, q):
-        T.append(r1 + l * q)
-    for i in x_i:
-        for l in range(0, q-1):
-            if T[l] <= i < T[l + 1]:
-                prob = (i - T[l]) / (T[l+1] - T[l])
-                if prob < 0.5:
-                    vx_i.append(T[l])
-                else:
-                    vx_i.append(T[l+1])
-
-
+# generate G quantizers randomly
 def generateQuantizers_heteroQ(G):
-    Q = []  # generate G quantizers randomly
+    Q = []
     for i in range(G):
         Q.append(random.randint(1, 100))
     return Q
 
-# set quantization level q
-def setQuantizer(G, mode, l, g, B):
-    # G = the number of groups
+# return quantization level q
+def returnQuantizer(mode, l, g, B, Q):
     # mode = homo quantization(0) or hetero quantization(1)
     # l = segment index
     # g = group index
+    # B = SS_Matrix
+    # Q = a set of quantization level
 
+    # q = quantization level
     if mode == 0:  # homo quantization
-        q = random.randint(1, 100)  # quantization level
+        q = Q[0]
         return q
     elif mode == 1:  # hetero quantization
-        Q = generateQuantizers_heteroQ(G) # a set of quantization level
         q = Q[B[l][g]]
         return q
     else:
         print("wrong input")
         return 0
 
-def homoQ(x, q):
-    """x = local model value of user i
-    q = setQuantizer(G, mode, l, g, B) = quantization level
-    => can do both homo quantization and hetero quantization"""
+def Quantization(x, G, q, r1, r2):
+    # x = local model value of user i
+    # G = the number of groups
+    # q = quantization level
+    # [r1, r2] = quantization range
+    """ q = returnQuantizer(mode, l, g, B, Q)
+    => Quantization(x, G, q) can do both homo quantization and hetero quantization. """
 
-    r1, r2 = 0, 100  # quantization range
-    delK = (r2 - r1) / (q - 1)  # quantization interval
-    T = []  # discrete value from quantization range
-    for l in range(0, q):
-        T.append(r1 + l * q)
+    # delK = quantization interval
+    # T = discrete value from quantization range point list
+    delK = (r2 - r1) / (q - 1)
+    T = []
+    for l in range(0, G):
+        T.append(r1 + l * delK)
 
-    for l in range(0, q - 1):
+    for l in range(0, G - 1):
         if T[l] <= x < T[l + 1]:
-            prob = (x - T[l]) / (T[l + 1] - T[l])
-            if prob < 0.5:
-                return T[l]
-            else:
-                return T[l+1]
-
-
-
-
-
+            ret_list = [T[l], T[l+1]]
+            prob_list = [(x - T[l]) / (T[l + 1] - T[l]), 1-((x - T[l]) / (T[l + 1] - T[l]))]
+            ret_x = random.choices(ret_list, prob_list)
+            break
+    return ret_x
